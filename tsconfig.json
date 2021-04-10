@@ -1,0 +1,71 @@
+{
+    "include": [
+        "./declarations/**/*"
+    ],
+    "exclude": [
+        "./node_modules/**/*"
+    ],
+    "files": [
+        "./src/app.tsx"
+    ],
+    "compilerOptions": {
+        "jsx": "preserve",
+        "strict": true,
+        "target": "esnext",
+        "module": "esnext",
+        "moduleResolution": "node",
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "sourceMap": true,
+        "paths": {
+            "@gof-src": [
+                "./src/"
+            ],
+            "@gof-src/*": [
+                "./src/*"
+            ],
+            "@gof-core": [
+                "./src/core/"
+            ],
+            "@gof-core/*": [
+                "./src/core/*"
+            ],
+            "@gof-util": [
+                "./src/util/"
+            ],
+            "@gof-util/*": [
+                "./src/util/*"
+            ],
+            "@gof-styling": [
+                "./src/styling/"
+            ],
+            "@gof-styling/*": [
+                "./src/styling/*"
+            ],
+            "@gof-res": [
+                "./src/res/"
+            ],
+            "@gof-res/*": [
+                "./src/res/*"
+            ],
+            "@gof-abs": [
+                "./src/abs/"
+            ],
+            "@gof-abs/*": [
+                "./src/abs/*"
+            ],
+            "@gof-components": [
+                "./src/components/"
+            ],
+            "@gof-components/*": [
+                "./src/components/*"
+            ],
+            "@gof-modules": [
+                "./src/modules/"
+            ],
+            "@gof-modules/*": [
+                "./src/modules/*"
+            ]
+        }
+    }
+}
