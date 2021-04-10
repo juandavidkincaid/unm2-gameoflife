@@ -6,7 +6,7 @@ Little game based on Conway's Game Of Life [Found Here](https://en.wikipedia.org
 
 # Docs
 
-This repository comes with a [dist](./dist/) folder there you can find a [GameOfLife.html](./dist/GameOfLife.html) file, download it and execute it on any browser, preferably chromium based or mozilla.
+This repository comes with a [dist](./dist/) folder, there you can find a [GameOfLife.html](./dist/GameOfLife.html) file, download it and execute it on any browser, preferably chromium based or mozilla.
 
 # Technologies Used
 
