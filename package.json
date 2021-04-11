@@ -2,8 +2,7 @@
   "name": "unm2-gameoflife",
   "version": "1.0.0",
   "author": "Juan David Kincaid <juandavidkincaid@gmail.com>",
-  "license": "UNLICENSED",
-  "private": true,
+  "license": "GNU GENERAL PUBLIC LICENSE",
   "scripts": {
     "build": "NODE_ENV=production webpack --mode production --config rel.webpack.config.js --progress",
     "build.profile": "NODE_ENV=production webpack --mode production --config rel.webpack.config.js --profile --json > ./profiles/build-prd.json",
