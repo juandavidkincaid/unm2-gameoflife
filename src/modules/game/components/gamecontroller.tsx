@@ -208,6 +208,23 @@ class GameControl extends BoundObject {
         this.update();
     }
 
+    setRandomCells(){
+        this.cells = new Set();
+        const mx = Math.floor(this.size.x / this.blocksize);
+        const my = Math.floor(this.size.y / this.blocksize);
+
+        for (let i = 0; i < mx * my; i++) {
+            const x = Math.floor(i % mx);
+            const y = Math.floor(i / mx);
+
+            const cell = new GameCell(i, { x, y }, this.cellsize, this.blocksize, this);
+            cell.status = (Math.random() * 10000) % 2 ? 'alive' : 'dead';
+            this.cells.add(cell);
+        }
+
+        this.update();
+    }
+
     setPattern(pattern: GamePattern){
         this.pattern = pattern;
         this.update();
@@ -352,6 +369,7 @@ class GameControl extends BoundObject {
 
     update() {
         this.updater({ control: this });
+        this.events.emit('animate');
     }
 
     setUpdate(updater: (update: { control: GameControl }) => void) {

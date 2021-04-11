@@ -47,7 +47,7 @@ const ControlBarStyled = styled.div`
     height: 100%;
     width: 100%;
     grid-template-columns: 1fr;
-    grid-template-rows: 70px 5px 1fr 5px 1fr 5px 15px;
+    grid-template-rows: 70px 5px 1fr 5px min-content 5px 15px;
 
     row-gap: 5px;
 
@@ -112,6 +112,8 @@ const ControlBarStyled = styled.div`
 
         row-gap: 5px;
 
+        place-items: center;
+        place-content: center;
 
         button{
             ${ButtonStyle(theme)}
@@ -158,16 +160,25 @@ const ControlBar = NC('ControlBar', () => {
             }}>
                 Pattern: {control.pattern.name}
             </Button>
+            <Button onClick={control.setRandomCells}>
+                Randomize
+            </Button>
         </div>
         <div className='vb-wrapper'>
             <div className='vb'></div>
         </div>
         <div className='instructions'>
             <div className='title'>
-                Instructions
+                Manual
             </div>
             <div className='content'>
-
+                <ul>
+                    <li>Play or Stop the game with the Play/Stop button.</li>
+                    <li>Reset the cells with the Reset button.</li>
+                    <li>Change between patterns with the Patterns button.</li>
+                    <li>Set live cells clicking where needed in the board.</li>
+                    <li>Adjust the game's velocity with the slider.</li>
+                </ul>
             </div>
         </div>
         <div className='vb-wrapper'>
