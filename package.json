@@ -8,6 +8,9 @@
     "build": "NODE_ENV=production webpack --mode production --config rel.webpack.config.js --progress",
     "build.profile": "NODE_ENV=production webpack --mode production --config rel.webpack.config.js --profile --json > ./profiles/build-prd.json",
     "build.analyze": "NODE_ENV=production ANALYZE_BUNDLE=yes && webpack --mode production --config rel.webpack.config.js",
+    "dev.server": "NODE_ENV=development webpack serve --mode development --config dev.webpack.config.js",
+    "dev.server.profile": "NODE_ENV=development webpack serve --mode development --config dev.webpack.config.js",
+    "dev.server.analyze": "NODE_ENV=development ANALYZE_BUNDLE=yes webpack serve --mode development --config dev.webpack.config.js",
     "dev": "NODE_ENV=development webpack --mode development --config dev.webpack.config.js --progress",
     "dev.profile": "NODE_ENV=development webpack --mode development --config dev.webpack.config.js --profile --json > ./profiles/build-dev.json",
     "dev.analyze": "NODE_ENV=development ANALYZE_BUNDLE=yes webpack --mode development --config dev.webpack.config.js"
@@ -18,7 +21,9 @@
   "dependencies": {
     "@mdi/js": "^5.9.55",
     "@mdi/react": "^1.4.0",
+    "@types/color": "^3.0.1",
     "clsx": "^1.1.1",
+    "color": "^3.1.3",
     "events": "^3.3.0",
     "history": "^5.0.0",
     "i18next": "^20.1.0",
@@ -40,6 +45,7 @@
     "@babel/preset-react": "^7.12.13",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.4.3",
     "@types/events": "^3.0.0",
+    "@types/fs-extra": "^9.0.10",
     "@types/js-cookie": "^2.2.6",
     "@types/lodash": "^4.14.168",
     "@types/react": "^17.0.3",
@@ -49,12 +55,15 @@
     "@types/styled-components": "^5.1.8",
     "babel-loader": "^8.2.2",
     "clean-webpack-plugin": "^3.0.0",
+    "fs-extra": "^9.1.0",
+    "html-webpack-plugin": "^5.3.1",
     "react-refresh": "^0.10.0",
     "ts-essentials": "^7.0.1",
     "ts-loader": "^8.0.18",
     "typescript": "^4.2.3",
     "webpack": "^5.31.0",
     "webpack-bundle-analyzer": "^4.4.0",
-    "webpack-cli": "^4.6.0"
+    "webpack-cli": "^4.6.0",
+    "webpack-dev-server": "^3.11.2"
   }
 }

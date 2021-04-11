@@ -3,7 +3,7 @@ const fs = require('fs-extra');
 const webpack = require('webpack');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
+const HtmlWebPackPlugin = require( 'html-webpack-plugin' );
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 
 
@@ -93,23 +93,22 @@ const baseConfig = {
 
 const clientConfig = Object.assign({}, baseConfig, {
     entry: {
-        lib: './src/app.tsx'
+        'GameOfLife': './src/app.tsx'
     },
     output:{
-        path: path.join(process.cwd(), './dist'),
+        path: path.join(process.cwd(), './docs'),
         library: {
             name: 'unm2-gameoflife',
             type: 'umd'
         },
-        filename: prodOrDev('[chunkhash].[fullhash].js', '[name].js'),
-        chunkFilename: prodOrDev('[chunkhash].[fullhash].js', '[name].js'),
-        publicPath: '/static/client/',
         devtoolModuleFilenameTemplate: 'file:///[absolute-resource-path]'
     },
     devtool: "source-map",
     devServer: prodOrDev(undefined, {
-        contentBase: '/static/client/',
-        hot: true
+        hot: true,
+        port: 6061,
+        serveIndex: true,
+        index: 'index.html'
     }),
     optimization:{
         
@@ -118,11 +117,14 @@ const clientConfig = Object.assign({}, baseConfig, {
         new CleanWebpackPlugin({
             dry: process.env.NODE_ENV === 'development'
         }),
-        new MomentLocalesPlugin({
-            localesToKeep: ['es-us', 'en', 'es']
-        }),
         new webpack.DefinePlugin({
             PKG_VRS: JSON.stringify(require("./package.json").version)
+        }),
+        new HtmlWebPackPlugin({
+            title: 'GameOfLife',
+            filename: 'index.html',
+            template: './src/index.ejs',
+            xhtml: true
         }),
         prodOrDev(false, new webpack.HotModuleReplacementPlugin()),
         prodOrDev(false, new ReactRefreshWebpackPlugin()),

@@ -1,15 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Helmet, HelmetProvider} from 'react-helmet-async';
-import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
+import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import {createGlobalStyle} from 'styled-components';
 import {I18nextProvider} from 'react-i18next';
 
 import {app, AppTheme, theme, i18n} from '@gof-core';
-import {viewportSwitch} from '@gof-styling'
 import {NC} from '@gof-util';
-
-import {NotFoundView} from '@gof-components';
 
 import {GameView} from '@gof-modules/game';
 
@@ -29,9 +26,10 @@ const GlobalStyle = createGlobalStyle`
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
         font-family: ${theme.fFamily};
-        font-size: 1;
+        color: ${theme.c.a};
+        font-size: ${theme.fSize};
         line-height: 1;
-        background-color: ${theme.c.wh};
+        background-color: ${theme.c.bl};
     }
 `;
 
@@ -47,9 +45,8 @@ ReactDOM.render(<React.StrictMode>
     <I18nextProvider i18n={i18n}>
         <HelmetProvider>
             <Helmet>
-                <style>
-                    @import url('https://fonts.googleapis.com/css2?family=Grenze&display=swap');
-                </style>
+                <link rel="preconnect" href="https://fonts.gstatic.com"/>
+                <link href="https://fonts.googleapis.com/css2?family=Josefin+Slab:wght@400&family=Megrim&display=swap" rel="stylesheet"/>
             </Helmet>
             <Router>
                 <AppTheme.Provider>
