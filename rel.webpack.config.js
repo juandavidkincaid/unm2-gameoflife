@@ -106,6 +106,7 @@ const clientConfig = Object.assign({}, baseConfig, {
     devtool: "source-map",
     devServer: prodOrDev(undefined, {
         hot: true,
+        host: '0.0.0.0',
         port: 6061,
         serveIndex: true,
         index: 'index.html'

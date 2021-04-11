@@ -16,8 +16,10 @@ class GameCell extends BoundObject {
     game: GameControl;
     status: 'dead' | 'alive';
     tags: Set<'marked'>;
-    
+    updatePending: boolean;
+    nextUpdate: ()=>void;
     events: EventEmitter;
+    neighbours: Set<GameCell>;
 
 
     constructor(id: number, pos: GameCell["pos"], size: number, blocksize: number, game: GameControl) {
@@ -30,6 +32,9 @@ class GameCell extends BoundObject {
         this.game = game;
         this.tags = new Set();
         this.events = new EventEmitter().setMaxListeners(0);
+        this.updatePending = false;
+        this.nextUpdate = ()=>{};
+        this.neighbours = new Set();
     }
 
     getPlaygroundPos() {
@@ -40,46 +45,52 @@ class GameCell extends BoundObject {
     }
 
     getNeighbours(radius: number = 3) {
-        radius = radius % 2 === 1 ? radius : radius - 1;
-        const liveCells: Set<GameCell> = new Set();
+        if(this.neighbours.size === 0){
+            
+            radius = radius % 2 === 1 ? radius : radius - 1;
 
-        const startPos = {
-            x: this.pos.x - Math.floor(radius / 2),
-            y: this.pos.y - Math.floor(radius / 2),
-        }
+            const startPos = {
+                x: this.pos.x - Math.floor(radius / 2),
+                y: this.pos.y - Math.floor(radius / 2),
+            }
 
-        for (let x = 0; x < radius; x++) {
-            for (let y = 0; y < radius; y++) {
-                const cell = this.game.getCellByPos({
-                    x: startPos.x + x,
-                    y: startPos.y + y,
-                });
+            for (let x = 0; x < radius; x++) {
+                for (let y = 0; y < radius; y++) {
+                    const pos = {
+                        x: startPos.x + x,
+                        y: startPos.y + y,
+                    }
 
-                if (cell && cell.status === 'alive') {
-                    liveCells.add(cell);
+                    if(pos.x === this.pos.x && pos.y === this.pos.y){
+                        continue;
+                    }
+
+                    const cell = this.game.getCellByPos(pos);
+
+                    if (cell) {
+                        this.neighbours.add(cell);
+                    }
                 }
             }
         }
-        return liveCells;
+
+        return new Set([...this.neighbours].filter(n=>n.status === 'alive'));
     }
 
-    tick() {
+    async tick() {
+        window.tickers.d3++;
         const neighbours = this.getNeighbours();
+        
         if (this.status === 'alive') {
-            if (neighbours.size < 2) {
-                this.status = 'dead';
-            }
-
             if (neighbours.size == 2 || neighbours.size == 3) {
-                this.status = 'alive';
+                this.setUpdate(()=>this.status = 'alive');
+            }else{
+                this.setUpdate(()=>this.status = 'dead');
             }
-
-            if (neighbours.size > 3) {
-                this.status = 'dead';
-            }
-        } else {
+        } 
+        if (this.status === 'dead') {
             if (neighbours.size == 3) {
-                this.status = 'alive';
+                this.setUpdate(()=>this.status = 'alive');
             }
         }
 
@@ -107,7 +118,7 @@ class GameCell extends BoundObject {
     onMouseOver(){
         const cells = this.getRelativePatternCells(this.game.pattern);
         cells.forEach((cell)=>{
-            cell.tags.add('marked');
+            cell.setUpdate(()=>cell.tags.add('marked'));
             cell.update();
         });
     }
@@ -115,17 +126,34 @@ class GameCell extends BoundObject {
     onMouseOut(){
         const cells = this.getRelativePatternCells(this.game.pattern);
         cells.forEach((cell)=>{
-            cell.tags.delete('marked');
+            cell.setUpdate(()=>cell.tags.delete('marked'));
             cell.update();
         });
     }
 
     onClick(){
+        const cells = this.getRelativePatternCells(this.game.pattern);
+        cells.forEach((cell)=>{
+            cell.setUpdate(()=>cell.status = 'alive');
+            cell.update();
+        });
+    }
 
+    setUpdate(update: ()=>void){
+        this.updatePending = true;
+        this.nextUpdate = update;
     }
 
     update() {
         this.events.emit('update');
+    }
+
+    draw(fn: ()=>void) {
+        if(this.updatePending){
+            this.nextUpdate();
+            fn();
+            this.updatePending = false;
+        }
     }
 }
 
@@ -153,7 +181,7 @@ class GameControl extends BoundObject {
         this.size = { x: 0, y: 0 };
         this.cellsize = 10;
         this.blocksize = 10;
-        this.velocity = 500;
+        this.velocity = 100;
         this.time = null;
         this.ticks = null;
         this.generations = 0;
@@ -253,34 +281,35 @@ class GameControl extends BoundObject {
         this.stopTicker();
         this.generations = 0;
         this.setCells();
+        this.events.emit('animate');
         this.update();
     }
 
 
     playAnimation() {
         this.stopAnimation();
-        this.aid = window.requestAnimationFrame(this.animate);
+        this.aid = window.setInterval(this.animate, 0);
         this.time = Date.now();
     }
 
-    animate() {
+    async animate() {
         if (this.time !== null) {
             const now = Date.now();
             const delta = now - this.time;
             const ticks = Math.floor(delta / this.velocity);
-            for (let i = 0; i < ticks; i++) {
-                this.tick();
+            if(ticks > 0){
+                for (let i = 0; i < ticks; i++) {
+                    setTimeout(this.tick, 0);
+                }
+                this.time = now;
             }
-            this.time = now;
             this.events.emit('animate');
-
         }
-        this.aid = window.requestAnimationFrame(this.animate);
     }
 
     stopAnimation() {
         if (this.aid) {
-            window.cancelAnimationFrame(this.aid);
+            window.clearInterval(this.aid);
             this.time = null;
         }
     }
@@ -291,9 +320,13 @@ class GameControl extends BoundObject {
         }
     }
 
-    tick() {
+    async tick() {
+        window.tickers.d4++;
         if (this.ticks !== null) {
-            this.cells.forEach(cell => cell.tick());
+            for(const cell of this.cells){
+                window.tickers.d5++;
+                await cell.tick();
+            }
             this.ticks++;
             this.generations++;
             this.events.emit('tick');

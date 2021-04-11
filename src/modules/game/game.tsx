@@ -26,6 +26,21 @@ import { theme, app } from '@gof-core';
 
 import { GameCell, GameController, useGameController, GamePattern, GamePatterns } from './components';
 
+declare global{
+    interface Window{
+        tickers: any
+    }
+}
+
+window.tickers = {
+    d0: 0,
+    d1: 0,
+    d2: 0,
+    d3: 0,
+    d4: 0,
+    d5: 0,
+}
+
 const ControlBarStyled = styled.div`
     ${GridStyle}
     padding: 10px;
@@ -198,7 +213,7 @@ const PlayGroundStyled = styled.div`
         place-content: center;
         padding: 5px;
 
-        canvas{
+        canvas, svg{
             width: 100%;
             height: 100%;
         }
@@ -207,41 +222,46 @@ const PlayGroundStyled = styled.div`
 
 const PlayGround = NC('PlayGround', ({ }) => {
     const control = useGameController();
-    const playground = useRef<null | HTMLCanvasElement>(null);
+    //const playground = useRef<null | HTMLCanvasElement>(null);
+    const playground = useRef<null | SVGSVGElement>(null);
     const [size, setSize] = useState({ x: 0, y: 0 });
     const [canvas, setCanvas] = useState<CanvasRenderingContext2D | null>(null);
+    const [svg, setSvg] = useState<SVGSVGElement | null>(null);
 
     useEffect(() => {
         if (playground.current) {
             setSize({ x: playground.current.clientWidth, y: playground.current.clientHeight });
-            setCanvas(playground.current.getContext('2d'));
+            setSvg(playground.current);
+            /* setCanvas(playground.current.getContext('2d'));
             playground.current.width = playground.current.clientWidth;
-            playground.current.height = playground.current.clientHeight;
+            playground.current.height = playground.current.clientHeight; */
         }
-    }, []);
+    }, [playground.current]);
 
     useEffect(() => {
         control.setSize(size);
     }, [size]);
 
-    useEffect(() => {
+    /* useEffect(() => {
         if (canvas) {
+            const strokeStyles = {
+                'default': Color(theme.c.b()).grayscale().lightness(5).rgb().string(),
+            }
+            const fillStyles = {
+                'alive': theme.c.a(),
+                'dead': Color(theme.c.a()).grayscale().lightness(20).rgb().string(),
+                'marked': Color(theme.c.a()).alpha(0.5).rgb().string()
+            }
+            
             const draw = async () => {
                 canvas.clearRect(0, 0, size.x, size.y);
                 for (const cell of control.getCells()) {
-                    canvas.strokeStyle = Color(theme.c.b()).grayscale().lightness(5).rgb().string();
+                    canvas.strokeStyle = strokeStyles['default'];
                     canvas.lineWidth = 1;
 
-                    if (cell.status === 'alive') {
-                        canvas.fillStyle = theme.c.a();
-                    }
-
-                    if (cell.status === 'dead') {
-                        canvas.fillStyle = Color(theme.c.a()).grayscale().lightness(20).rgb().string();
-                    }
-
-                    if (cell.tags.has('marked')) {
-                        canvas.fillStyle = Color(theme.c.a()).alpha(0.5).rgb().string();
+                    canvas.fillStyle = fillStyles[cell.status];
+                    if(cell.tags.has('marked')){
+                        canvas.fillStyle = fillStyles['marked'];
                     }
 
                     canvas.beginPath();
@@ -261,9 +281,70 @@ const PlayGround = NC('PlayGround', ({ }) => {
                 control.events.off('animate', draw);
             }
         }
-    }, [canvas]);
+    }, [canvas]); */
 
-    const tailer = (fn: (...args: any[]) => any) => {
+    useEffect(() => {
+        if (svg) {
+            const strokeStyles = {
+                'default': Color(theme.c.b()).grayscale().lightness(5).rgb().string(),
+            }
+            const fillStyles = {
+                'alive': theme.c.a(),
+                'dead': Color(theme.c.a()).grayscale().lightness(20).rgb().string(),
+                'marked': Color(theme.c.a()).alpha(0.5).rgb().string()
+            }
+            
+            const preDraw = async () => {
+                for (const cell of control.cells) {
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.style.transition = 'all 10ms';
+                    rect.style.stroke = strokeStyles['default'];
+                    rect.style.strokeWidth = '1px';
+
+                    rect.style.fill = fillStyles[cell.status];
+                    if(cell.tags.has('marked')){
+                        rect.style.fill = fillStyles['marked'];
+                    }
+
+                    rect.style.width = `${cell.size}px`;
+                    rect.style.height = `${cell.size}px`;
+
+                    rect.addEventListener('mouseover', cell.onMouseOver);
+                    rect.addEventListener('mouseout', cell.onMouseOut);
+                    rect.addEventListener('click', cell.onClick);
+
+                    rect.setAttribute('x', `${cell.getPlaygroundPos().x}`);
+                    rect.setAttribute('y', `${cell.getPlaygroundPos().y}`);
+                    rect.setAttribute('id', `c${cell.id}`);
+                    svg.appendChild(rect);
+                }
+            }
+            preDraw();
+            
+            const draw = async () => {
+                window.tickers.d0++;
+                for (const cell of control.cells) {
+                    window.tickers.d1++;
+                    cell.draw(()=>{
+                        window.tickers.d2++;
+                        const rect = svg.getElementById(`c${cell.id}`) as SVGRectElement;
+                        if(rect){
+                            rect.style.fill = fillStyles[cell.status];
+                            if(cell.tags.has('marked')){
+                                rect.style.fill = fillStyles['marked'];
+                            }
+                        }
+                    });
+                }
+            }
+            control.events.on('animate', draw);
+            return () => {
+                control.events.off('animate', draw);
+            }
+        }
+    }, [svg]);
+
+    /* const tailer = (fn: (...args: any[]) => any) => {
         let tail: (...args: any[]) => any = () => { };
         return (...args: any) => {
             tail();
@@ -272,11 +353,11 @@ const PlayGround = NC('PlayGround', ({ }) => {
                 tail = ret;
             }
         }
-    }
+    } */
 
     return <PlayGroundStyled>
         <div className='playground'>
-            <canvas ref={playground}
+            {/* <canvas ref={playground}
                 onMouseMove={tailer((event) => {
                     const cell = control.getCellByPlaygroundPos({
                         x: event.nativeEvent.offsetX,
@@ -299,7 +380,8 @@ const PlayGround = NC('PlayGround', ({ }) => {
                         cell.onClick();
                     }
                 }}
-            />
+            /> */}
+            <svg viewBox={`0 0 ${size.x} ${size.y}`} ref={playground}/>
         </div>
         <div className='vb-wrapper'>
             <div className='vb'></div>
