@@ -232,48 +232,12 @@ const ControlBar = NC('ControlBar', () => {
     </ControlBarStyled>;
 });
 
-
-const PlayGroundStyled = styled.div`
-    ${GridStyle}
-    height: 100%;
+const GameStyled = styled.svg`
     width: 100%;
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 5px 100px;
-
-    row-gap: 5px;
-
-    place-items: center;
-    place-content: center;
-    padding: 10px;
-
-    .vb-wrapper{
-        width: 100%;
-        padding: 10px 0;
-    }
-
-    .vb{
-        height: 1px;
-        width: 100%;
-        background-color: ${theme.c.a};
-    }
-
-    .playground{
-        ${FlexStyle}
-        width: 100%;
-        height: 100%;
-
-        place-items: center;
-        place-content: center;
-        padding: 5px;
-
-        canvas, svg{
-            width: 100%;
-            height: 100%;
-        }
-    }
+    height: 100%;
 `;
 
-const PlayGround = NC('PlayGround', ({ }) => {
+const Game = NC('Game', ({})=>{
     const game = useGame();
     const playground = useRef<null | SVGSVGElement>(null);
     const [size, setSize] = useState({ x: 0, y: 0 });
@@ -348,15 +312,86 @@ const PlayGround = NC('PlayGround', ({ }) => {
         }
     }, [svg]);
 
+    return <GameStyled viewBox={`0 0 ${size.x} ${size.y}`} ref={playground}/>;
+});
+
+
+const PlayGroundStyled = styled.div`
+    ${GridStyle}
+    height: 100%;
+    width: 100%;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 5px 100px;
+
+    row-gap: 5px;
+
+    place-items: center;
+    place-content: center;
+    padding: 10px;
+
+    .vb-wrapper{
+        width: 100%;
+        padding: 10px 0;
+    }
+
+    .vb{
+        height: 1px;
+        width: 100%;
+        background-color: ${theme.c.a};
+    }
+
+    .playground{
+        ${FlexStyle}
+        width: 100%;
+        height: 100%;
+
+        place-items: center;
+        place-content: center;
+        padding: 5px;
+    }
+
+    .stats{
+        ${GridStyle}
+        height: 100%;
+        width: 100%;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+
+        column-gap: 5px;
+        row-gap: 5px;
+
+        place-items: start;
+        place-content: start;
+        padding: 10px;
+    }
+`;
+
+const PlayGround = NC('PlayGround', ({ }) => {
+    const game = useGame();
+    const forceUpdate = useForceUpdate();
+
+
+    useEffect(()=>{
+        game.events.on('stats', forceUpdate);
+        game.events.on('tick', forceUpdate);
+        return () => {
+            game.events.off('stats', forceUpdate);
+            game.events.on('tick', forceUpdate);
+        }
+    }, []);
+
     return <PlayGroundStyled>
         <div className='playground'>
-            <svg viewBox={`0 0 ${size.x} ${size.y}`} ref={playground}/>
+            <Game/>
         </div>
         <div className='vb-wrapper'>
             <div className='vb'></div>
         </div>
-        <div>
-
+        <div className='stats'>
+            <span>Ticks: {game.ticks}</span>
+            <span>Velocity: {game.velocity}ms/tick</span>
+            <span>Status: {game.status}</span>
+            <span>LiveCells: {[...game.cells.values()].filter(c=>c.status==='alive').length}</span>
         </div>
     </PlayGroundStyled>;
 });
@@ -388,7 +423,7 @@ const GameViewStyled = styled.div`
 
 const GameView = NC('GameView', ({ }) => {
     return <GameViewStyled>
-        <GameProvider blocksize={25} cellsize={15} initialVelocity={500}>
+        <GameProvider blocksize={15} cellsize={15} initialVelocity={500}>
             <ControlBar />
             <div className='hb-wrapper'>
                 <div className='hb'></div>
