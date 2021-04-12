@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useReducer } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import { useTranslation } from 'react-i18next';
@@ -24,22 +24,9 @@ import {
 } from '@gof-components';
 import { theme, app } from '@gof-core';
 
-import { GameCell, GameController, useGameController, GamePattern, GamePatterns } from './components';
+import { Cell, GameProvider, useGame, GamePattern, GamePatterns } from './components';
 
-declare global{
-    interface Window{
-        tickers: any
-    }
-}
-
-window.tickers = {
-    d0: 0,
-    d1: 0,
-    d2: 0,
-    d3: 0,
-    d4: 0,
-    d5: 0,
-}
+const useForceUpdate = ()=>useReducer(s=>s+1, 0)[1];
 
 const ControlBarStyled = styled.div`
     ${GridStyle}
@@ -121,12 +108,61 @@ const ControlBarStyled = styled.div`
             height: 50px;
             
         }
+
+        .slider{
+            ${GridStyle}
+            width: 100%;
+            height: 100px;
+
+            grid-template-columns: 1fr;
+            grid-template-rows: 50px 50px;
+
+            place-items: center;
+            place-content: center;
+            padding: 5px;
+            border: 1px solid ${theme.c.a};
+
+            input{
+                appearance: none;
+                width: 100%;
+                height: 1px;
+                background-color: ${theme.c.a};
+                outline: none;
+                transition: all 500ms;
+
+                &::-webkit-slider-thumb{
+                    appearance: none;
+                    width: 3px;
+                    height: 15px;
+                    background-color: ${theme.c.a};
+                    cursor: pointer;
+                }
+
+                &::-moz-range-thumb{
+                    appearance: none;
+                    width: 3px;
+                    height: 15px;
+                    background-color: ${theme.c.a};
+                    cursor: pointer;
+                }
+            }
+        }
     }
 `;
 
 const ControlBar = NC('ControlBar', () => {
-    const control = useGameController();
+    const game = useGame();
+    const forceUpdate = useForceUpdate();
+    
 
+    useEffect(()=>{
+        game.buildCells();
+
+        game.events.on('stats', forceUpdate);
+        return () => {
+            game.events.off('stats', forceUpdate);
+        }
+    }, []);
 
     return <ControlBarStyled>
         <div className='title'>
@@ -137,32 +173,38 @@ const ControlBar = NC('ControlBar', () => {
         </div>
         <div className='controls'>
             <Button onClick={() => {
-                const status = control.getStatus();
+                const status = game.status;
                 if (status === 'play') {
-                    control.setStatus('stop');
+                    game.status = 'stop';
                 }
                 if (status === 'stop') {
-                    control.setStatus('play');
+                    game.status = 'play';
                 }
             }}>
-                {control.getStatus() === 'play' && 'Stop'}
-                {control.getStatus() === 'stop' && 'Play'}
+                {game.status === 'play' && 'Stop'}
+                {game.status === 'stop' && 'Play'}
             </Button>
-            <Button onClick={control.reset}>
+            <Button onClick={()=>{game.reset(); game.buildCells();}}>
                 Reset
             </Button>
             <Button onClick={() => {
                 const patterns = [...GamePatterns];
-                const index = patterns.findIndex(p => p.id === control.pattern.id);
+                const index = patterns.findIndex(p => p.id === game.pattern.id);
                 if (index > -1) {
-                    control.setPattern(patterns[(index + 1) % patterns.length]);
+                    game.pattern = patterns[(index + 1) % patterns.length];
                 }
             }}>
-                Pattern: {control.pattern.name}
+                Pattern: {game.pattern.name}
             </Button>
-            <Button onClick={control.setRandomCells}>
+            <Button onClick={game.buildRandomCells}>
                 Randomize
             </Button>
+            <div className="slider">
+                <label>
+                    Velocity
+                </label>
+                <input type="range" min="-1500" max="-50" value={-game.velocity} onChange={({target})=>game.velocity = -parseInt(target.value)}/>
+            </div>
         </div>
         <div className='vb-wrapper'>
             <div className='vb'></div>
@@ -232,67 +274,21 @@ const PlayGroundStyled = styled.div`
 `;
 
 const PlayGround = NC('PlayGround', ({ }) => {
-    const control = useGameController();
-    //const playground = useRef<null | HTMLCanvasElement>(null);
+    const game = useGame();
     const playground = useRef<null | SVGSVGElement>(null);
     const [size, setSize] = useState({ x: 0, y: 0 });
-    const [canvas, setCanvas] = useState<CanvasRenderingContext2D | null>(null);
     const [svg, setSvg] = useState<SVGSVGElement | null>(null);
 
     useEffect(() => {
         if (playground.current) {
             setSize({ x: playground.current.clientWidth, y: playground.current.clientHeight });
             setSvg(playground.current);
-            /* setCanvas(playground.current.getContext('2d'));
-            playground.current.width = playground.current.clientWidth;
-            playground.current.height = playground.current.clientHeight; */
         }
     }, [playground.current]);
 
     useEffect(() => {
-        control.setSize(size);
+        game.size = size;
     }, [size]);
-
-    /* useEffect(() => {
-        if (canvas) {
-            const strokeStyles = {
-                'default': Color(theme.c.b()).grayscale().lightness(5).rgb().string(),
-            }
-            const fillStyles = {
-                'alive': theme.c.a(),
-                'dead': Color(theme.c.a()).grayscale().lightness(20).rgb().string(),
-                'marked': Color(theme.c.a()).alpha(0.5).rgb().string()
-            }
-            
-            const draw = async () => {
-                canvas.clearRect(0, 0, size.x, size.y);
-                for (const cell of control.getCells()) {
-                    canvas.strokeStyle = strokeStyles['default'];
-                    canvas.lineWidth = 1;
-
-                    canvas.fillStyle = fillStyles[cell.status];
-                    if(cell.tags.has('marked')){
-                        canvas.fillStyle = fillStyles['marked'];
-                    }
-
-                    canvas.beginPath();
-                    canvas.rect(
-                        cell.getPlaygroundPos().x,
-                        cell.getPlaygroundPos().y,
-                        cell.size,
-                        cell.size,
-                    );
-                    canvas.fill();
-                    canvas.stroke();
-                    canvas.closePath();
-                }
-            }
-            control.events.on('animate', draw);
-            return () => {
-                control.events.off('animate', draw);
-            }
-        }
-    }, [canvas]); */
 
     useEffect(() => {
         if (svg) {
@@ -306,7 +302,7 @@ const PlayGround = NC('PlayGround', ({ }) => {
             }
             
             const preDraw = async () => {
-                for (const cell of control.cells) {
+                for (const cell of game.cells.values()) {
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                     rect.style.transition = 'all 10ms';
                     rect.style.stroke = strokeStyles['default'];
@@ -317,28 +313,25 @@ const PlayGround = NC('PlayGround', ({ }) => {
                         rect.style.fill = fillStyles['marked'];
                     }
 
-                    rect.style.width = `${cell.size}px`;
-                    rect.style.height = `${cell.size}px`;
+                    rect.style.width = `${cell.cellsize}px`;
+                    rect.style.height = `${cell.cellsize}px`;
 
                     rect.addEventListener('mouseover', cell.onMouseOver);
                     rect.addEventListener('mouseout', cell.onMouseOut);
                     rect.addEventListener('click', cell.onClick);
 
-                    rect.setAttribute('x', `${cell.getPlaygroundPos().x}`);
-                    rect.setAttribute('y', `${cell.getPlaygroundPos().y}`);
-                    rect.setAttribute('id', `c${cell.id}`);
+                    rect.setAttribute('x', `${cell.gamepos.x}`);
+                    rect.setAttribute('y', `${cell.gamepos.y}`);
+                    rect.setAttribute('id', `c${cell.posid}`);
                     svg.appendChild(rect);
                 }
             }
             preDraw();
             
             const draw = async () => {
-                window.tickers.d0++;
-                for (const cell of control.cells) {
-                    window.tickers.d1++;
-                    cell.draw(()=>{
-                        window.tickers.d2++;
-                        const rect = svg.getElementById(`c${cell.id}`) as SVGRectElement;
+                for (const [cell, draw] of game.tickUpdates) {
+                    draw(()=>{
+                        const rect = svg.getElementById(`c${cell.posid}`) as SVGRectElement;
                         if(rect){
                             rect.style.fill = fillStyles[cell.status];
                             if(cell.tags.has('marked')){
@@ -348,50 +341,15 @@ const PlayGround = NC('PlayGround', ({ }) => {
                     });
                 }
             }
-            control.events.on('animate', draw);
+            game.events.on('frame', draw);
             return () => {
-                control.events.off('animate', draw);
+                game.events.off('frame', draw);
             }
         }
     }, [svg]);
 
-    /* const tailer = (fn: (...args: any[]) => any) => {
-        let tail: (...args: any[]) => any = () => { };
-        return (...args: any) => {
-            tail();
-            const ret = fn(...args);
-            if (typeof ret === 'function') {
-                tail = ret;
-            }
-        }
-    } */
-
     return <PlayGroundStyled>
         <div className='playground'>
-            {/* <canvas ref={playground}
-                onMouseMove={tailer((event) => {
-                    const cell = control.getCellByPlaygroundPos({
-                        x: event.nativeEvent.offsetX,
-                        y: event.nativeEvent.offsetY
-                    });
-                    if (cell) {
-                        cell.onMouseOver();
-                        return () => {
-                            cell.onMouseOut();
-                        }
-                    }
-
-                })}
-                onMouseUp={(event) => {
-                    const cell = control.getCellByPlaygroundPos({
-                        x: event.nativeEvent.offsetX,
-                        y: event.nativeEvent.offsetY
-                    });
-                    if (cell) {
-                        cell.onClick();
-                    }
-                }}
-            /> */}
             <svg viewBox={`0 0 ${size.x} ${size.y}`} ref={playground}/>
         </div>
         <div className='vb-wrapper'>
@@ -430,13 +388,13 @@ const GameViewStyled = styled.div`
 
 const GameView = NC('GameView', ({ }) => {
     return <GameViewStyled>
-        <GameController>
+        <GameProvider blocksize={25} cellsize={15} initialVelocity={500}>
             <ControlBar />
             <div className='hb-wrapper'>
                 <div className='hb'></div>
             </div>
             <PlayGround />
-        </GameController>
+        </GameProvider>
     </GameViewStyled>;
 })
 
