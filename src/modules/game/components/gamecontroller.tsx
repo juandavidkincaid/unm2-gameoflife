@@ -22,13 +22,13 @@ const useGame = () => {
 }
 
 type GameProvider = {
-    cellsize: number,
-    blocksize: number,
+    initialCellsize: number,
+    initialBlocksize: number,
     initialVelocity: number
 }
 
-const GameProvider = NC<GameProvider>('GameProvider', ({ children, cellsize, blocksize, initialVelocity }) => {
-    const game = useMemo(() => new Game(cellsize, blocksize, initialVelocity), []);
+const GameProvider = NC<GameProvider>('GameProvider', ({ children, initialCellsize, initialBlocksize, initialVelocity }) => {
+    const game = useMemo(() => new Game(initialCellsize, initialBlocksize, initialVelocity), []);
 
     return <GameControllerContext.Provider value={game}>
         {children}

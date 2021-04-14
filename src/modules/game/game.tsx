@@ -95,12 +95,12 @@ const ControlBarStyled = styled.div`
         width: 100%;
         
         grid-template-columns: 1fr;
-        grid-auto-rows: 1fr;
+        grid-auto-rows: min-content;
 
         row-gap: 5px;
 
         place-items: center;
-        place-content: center;
+        place-content: space-around;
 
         button{
             ${ButtonStyle(theme)}
@@ -156,8 +156,6 @@ const ControlBar = NC('ControlBar', () => {
     
 
     useEffect(()=>{
-        game.buildCells();
-
         game.events.on('stats', forceUpdate);
         return () => {
             game.events.off('stats', forceUpdate);
@@ -204,6 +202,18 @@ const ControlBar = NC('ControlBar', () => {
                     Velocity
                 </label>
                 <input type="range" min="-1500" max="-50" value={-game.velocity} onChange={({target})=>game.velocity = -parseInt(target.value)}/>
+            </div>
+            <div className="slider">
+                <label>
+                    CellSize
+                </label>
+                <input type="range" min="10" max="100" value={game.cellsize} onChange={({target})=>game.cellsize = parseInt(target.value)}/>
+            </div>
+            <div className="slider">
+                <label>
+                    BlockSize
+                </label>
+                <input type="range" min="10" max="100" value={game.blocksize} onChange={({target})=>game.blocksize = parseInt(target.value)}/>
             </div>
         </div>
         <div className='vb-wrapper'>
@@ -266,6 +276,7 @@ const Game = NC('Game', ({})=>{
             }
             
             const preDraw = async () => {
+                [...svg.children].forEach(child=>child.remove());
                 for (const cell of game.cells.values()) {
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                     rect.style.transition = 'all 10ms';
@@ -305,8 +316,12 @@ const Game = NC('Game', ({})=>{
                     });
                 }
             }
+
+            game.events.on('gridchange', preDraw);
             game.events.on('frame', draw);
+
             return () => {
+                game.events.off('gridchange', preDraw);
                 game.events.off('frame', draw);
             }
         }
@@ -392,6 +407,10 @@ const PlayGround = NC('PlayGround', ({ }) => {
             <span>Velocity: {game.velocity}ms/tick</span>
             <span>Status: {game.status}</span>
             <span>LiveCells: {[...game.cells.values()].filter(c=>c.status==='alive').length}</span>
+            <span>CellSize: {game.cellsize}</span>
+            <span>BlockSize: {game.blocksize}</span>
+            <span>GridSize: {game.mx}x{game.my}</span>
+            <span>SvgSize: {game.size.x}x{game.size.y}</span>
         </div>
     </PlayGroundStyled>;
 });
@@ -423,7 +442,7 @@ const GameViewStyled = styled.div`
 
 const GameView = NC('GameView', ({ }) => {
     return <GameViewStyled>
-        <GameProvider blocksize={15} cellsize={15} initialVelocity={500}>
+        <GameProvider initialBlocksize={15} initialCellsize={15} initialVelocity={500}>
             <ControlBar />
             <div className='hb-wrapper'>
                 <div className='hb'></div>

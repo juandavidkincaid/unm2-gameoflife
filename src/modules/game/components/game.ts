@@ -28,10 +28,10 @@ class Cell extends BoundObject{
     posid: number;
     events: EventEmitter;
 
-    cellsize: number;
-    blocksize: number;
     tags: Set<'marked'>;
     tickUpdate: (update: ()=>void)=>void;
+    private _cellsize: number;
+    private _blocksize: number;
     private _status: 'dead' | 'alive';    
     private _neighbours: Set<Cell>;
 
@@ -43,8 +43,8 @@ class Cell extends BoundObject{
         this.posid = posid;
         this.game = game;
         
-        this.cellsize = 0;
-        this.blocksize = 0;
+        this._cellsize = 0;
+        this._blocksize = 0;
         this.tags = new Set();
         this._status = 'dead';
         this._neighbours = new Set();
@@ -66,6 +66,23 @@ class Cell extends BoundObject{
         this.blocksize = blocksize;
     }
 
+    get cellsize(){
+        return this._cellsize;
+    }
+
+    set cellsize(value){
+        this._cellsize = value;
+        this.events.emit('cellsize', value);
+    }
+
+    get blocksize(){
+        return this._blocksize;
+    }
+
+    set blocksize(value){
+        this._blocksize = value;
+        this.events.emit('blocksize', value);
+    }
     
     get pos(){
         const x = Math.floor(this.posid % this.game.mx);
@@ -195,8 +212,8 @@ class Cell extends BoundObject{
 class Game extends BoundObject{
     mx: number;
     my: number;
-    cellsize: number;
-    blocksize: number;
+    private _cellsize: number;
+    private _blocksize: number;
     private _size: {x: number, y: number};
     
     cells: Map<number, Cell>;
@@ -220,8 +237,8 @@ class Game extends BoundObject{
         this.mx = 0;
         this.my = 0;
         this.size = {x: 0, y: 0};
-        this.cellsize = cellsize;
-        this.blocksize = blocksize;
+        this._cellsize = cellsize;
+        this._blocksize = blocksize;
 
         this._fid = 0;
         this.cells = new Map();
@@ -242,16 +259,47 @@ class Game extends BoundObject{
         /*Listeners*/
         this.events.on('size', this.buildCells);
 
+        this.events.on('cellsize', ()=>this.events.emit('stats'));
+        this.events.on('blocksize', ()=>this.events.emit('stats'));
         this.events.on('size', ()=>this.events.emit('stats'));
         this.events.on('status', ()=>this.events.emit('stats'));
         this.events.on('velocity', ()=>this.events.emit('stats'));
         this.events.on('pattern', ()=>this.events.emit('stats'));
         this.events.on('reset', ()=>this.events.emit('stats'));
 
+        this.events.on('cellsize', ()=>this.events.emit('gridchange'));
+        this.events.on('blocksize', ()=>this.events.emit('gridchange'));
+        this.events.on('size', ()=>this.events.emit('gridchange'));
+
         this.events.on('tick', ()=>this.events.emit('update'));
         this.events.on('frame', ()=>this.events.emit('update'));
+        
+        this.events.on('gridchange', ()=>this.buildCells());
 
+        this.buildCells();
         this.startFraming();
+    }
+
+    get cellsize(){
+        return this._cellsize;
+    }
+
+    set cellsize(value){
+        this._cellsize = value;
+        this.events.emit('cellsize', value);
+    }
+
+    get blocksize(){
+        return this._blocksize;
+    }
+
+    set blocksize(value){
+        this._blocksize = value;
+
+        this.mx = Math.floor(this.size.x / value);
+        this.my = Math.floor(this.size.y / value);
+
+        this.events.emit('blocksize', value);
     }
 
     get size(){
